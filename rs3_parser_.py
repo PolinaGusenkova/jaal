@@ -5,6 +5,8 @@ from xml.dom import NotFoundErr
 import xml.etree.ElementTree as ET
 import pandas as pd
 
+from jaal.tree_builder.constituent_tree_builder import ConstituentTreeBuilder
+from jaal.tree_builder.rs3_tree_builder import RS3TreeBuilder
 from jaal.tree_builder.tree_builder import Edge, RelationNode
 from jaal.tree_builder.tree_builder import TreeBuilder
 
@@ -44,7 +46,7 @@ class RS3Parser():
         def leaf():
             return item.tag == 'segment'
 
-        edus: list[str|None] = []
+        edus: list[str] = []
         nodes: list[RelationNode] = []
         edges: list[Edge] = []
         satellites: list[str] = []
@@ -52,7 +54,8 @@ class RS3Parser():
         for item in items:  
             edu_index = len(edus)
             if leaf():
-                edus.append(item.text)
+                if item.text:
+                    edus.append(item.text)
 
             node_id = f'{item.get('id')}_{annotator}' if item.get('id') is not None else ''
             num_id = int(item.get('id', 0))
@@ -70,7 +73,7 @@ class RS3Parser():
                 relation=item.get('relname'),
                 nuclearity=relation_type.get(item.get('relname')),
                 id=node_id,
-                numerical_id=num_id,
+                # numerical_id=num_id,
                 level=0,
                 annotator=annotator,
                 edus=[],
@@ -87,13 +90,26 @@ class RS3Parser():
                 root_id = new_node.id
                 new_node.label = 'root'
 
-        tree_builder = TreeBuilder(
+        constituent_tree_builder = ConstituentTreeBuilder(
             nodes=nodes,
             edges=edges,
             root_id=root_id,
             segments=edus,
             satellite_node_ids=satellites
         )
+        nodes_df, edges_df = constituent_tree_builder.build()
 
-        nodes_df, edges_df = tree_builder.build()
+        # TODO define the builder - OR - pass a flag to the builder
+        rs3_tree_builder = RS3TreeBuilder(
+            nodes=nodes,
+            edges=edges,
+            root_id=root_id,
+            segments=edus,
+            satellite_node_ids=satellites
+        )
+        nodes_df, edges_df = rs3_tree_builder.build()
+
+        # TODO merge the dataframes
+        # next is to display them correctly
+
         return nodes_df, edges_df

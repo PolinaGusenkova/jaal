@@ -1,4 +1,4 @@
-from collections import defaultdict, deque
+from abc import abstractmethod
 from dataclasses import dataclass, field
 from typing import Literal
 import pandas as pd
@@ -11,7 +11,6 @@ class RelationNode():
 
     relation: str | None =None
     nuclearity: Literal['S', 'N'] | None =None
-    numerical_id: int | None =None # NOTE where is it used?
     level: int =0
     annotator: str | None =None
     edus: list[int] =field(default_factory=list)
@@ -76,9 +75,6 @@ class TreeBuilder():
             )
             self.edges.append(edu_edge)
 
-        # nodes.extend(new_nodes)
-        # return nodes, edges
-    
     def populate_edus(self):
         node_lookup = {node.id: node for node in self.nodes}
 
@@ -94,36 +90,15 @@ class TreeBuilder():
         for node in self.nodes:
             node.edus = self._collect_edus(node.id, node_lookup, parent_to_children, processed_nodes)
 
-        # return nodes
-    
-    # TODO move to ConstituentTreeBuilder
+    @abstractmethod
     def assign_depth_levels(self):
         """Performs Breadth First Search to assign tree depth level to each node."""
-        edges_c2p_dict = self.edges_as_p2c_dict()
-        levels = {}
-        queue = deque([(self.root_id, 0)])  # Each element is (node_id, level)
-
-        while queue:
-            node, level = queue.popleft()
-            levels[node] = level
-
-            for child in edges_c2p_dict.get(node, []):
-                queue.append((child, level + 1))
-
-        for node in self.nodes:
-            node.level = levels[node.id]
+        pass
     
-    # TODO move to ConstituentTreeBuilder
+    @abstractmethod
     def redirect_edges(self, satellites: list[str] =[]) -> None:
         """Replaces the parent by the grandparent for each satellite node according to the structure of a constituent tree."""
-        edges_c2p_dict = self.edges_as_c2p_dict()
-
-        for edge in self.edges:
-            if edge.child in self.satellite_node_ids:
-                parent = edge.parent
-                grandparent = edges_c2p_dict.get(parent)
-                if grandparent is not None:
-                    edge.parent = grandparent
+        pass
 
     def _collect_edus(self, node_id, node_lookup, parent_to_children, processed):
         """Recursively collect EDUs for a given node."""
@@ -148,10 +123,6 @@ class TreeBuilder():
         p2c_map = {}
         for edge in self.edges:
             p2c_map.setdefault(edge.parent, []).append(edge.child)
-
-        print(self.edges)
-        print(p2c_map)
-
         return p2c_map
 
     def edges_as_c2p_dict(self) -> dict:

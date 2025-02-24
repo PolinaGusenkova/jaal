@@ -1,49 +1,34 @@
-from dataclasses import dataclass, field
-from typing import Literal
-
-from pandas import DataFrame
+from collections import deque
 from jaal.tree_builder.tree_builder import TreeBuilder
-from jaal.tree_builder.utils import wrap_text
+
 
 class RS3TreeBuilder(TreeBuilder):
-    def __init__(self):
-        self.nodes = []
-        self.edges = []
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
-        self.nodes_df = DataFrame()
-        self.edges_df = DataFrame()
+    def redirect_edges(self) -> None: # TODO implement
+        """Replaces the parent by the grandparent for each satellite node according to the structure of a constituent tree."""
+        edges_c2p_dict = self.edges_as_c2p_dict()
 
-    def add_node(self, node):
-        self.nodes
+        for edge in self.edges:
+            if edge.child in self.satellite_node_ids:
+                parent = edge.parent
+                grandparent = edges_c2p_dict.get(parent)
+                if grandparent is not None:
+                    edge.parent = grandparent
 
-    def attach_child_nodes(self, nodes: list, edges: dict, edus):
-        child_nodes = edges.keys()
-        parent_nodes = edges.values()
-        leaf_nodes = child_nodes - parent_nodes  # Nodes without children
+    def assign_depth_levels(self): # TODO implement
+        """Performs Breadth First Search to assign tree depth level to each node."""
+        edges_c2p_dict = self.edges_as_p2c_dict()
+        levels = {}
+        queue = deque([(self.root_id, 0)])  # Each element is (node_id, level)
 
-        new_nodes = []
-        new_edges = []
+        while queue:
+            node, level = queue.popleft()
+            levels[node] = level
 
-        for leaf_id in leaf_nodes:
-            leaf_node = next(node for node in nodes if node.id == leaf_id)
-            
-            edu_index = leaf_node.edu_index  # Since leaves only have one EDU
-            edu_text = f"{edu_index + 1}. {edus[edu_index]}"
+            for child in edges_c2p_dict.get(node, []):
+                queue.append((child, level + 1))
 
-            wrapped_text = wrap_text(edu_text)
-
-            edu_node = RelationNode(
-                id=f'{leaf_id}_edu',
-                edu_index=edu_index,
-                level=leaf_node.level + 1,
-                annotator=leaf_node.annotator,
-                is_leaf=True,
-                label=wrapped_text
-            )
-            new_nodes.append(edu_node)
-
-            edges[edu_node.id] = leaf_id
-
-        nodes.extend(new_nodes)
-
-        return nodes, edges
+        for node in self.nodes:
+            node.level = levels[node.id]
