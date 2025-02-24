@@ -4,6 +4,9 @@ Author: Mohit Mayank
 Parse network data from dataframe format into visdcc format 
 """
 
+from jaal.jaal.layout_ import get_distinct_colors
+
+
 def compute_scaling_vars_for_numerical_cols(df):
     """Identify and scale numerical cols"""
     # identify numerical cols
@@ -62,14 +65,25 @@ def parse_dataframe(edge_df, node_df=None):
             node_df['title'] = node_df['id']
         # see if node imge url is present or not
         node_image_url_flag = 'node_image_url' in node_df.columns
-        # create the node data
+        print(node_image_url_flag)
+        # get color mapping
+        if not node_image_url_flag:
+            annotators = node_df['annotator'].dropna().unique().tolist()
+            colors = get_distinct_colors(len(annotators))
+            annotator_color_map = dict(zip(annotators, colors))
+            node_df['color'] = node_df['annotator'].map(lambda x: annotator_color_map.get(x, "#CCCCCC")) 
+        # update the node data
         for node in node_df.to_dict(orient='records'):
             if not node_image_url_flag:
                 nodes.append({**node, **{'label': node['title'], 'shape': 'dot', 'size': 7}})
+                print("Color: ", node['color'])
             else:
                 nodes.append({**node, **{'label': node['title'], 'shape': 'circularImage',
                                 'image': node['node_image_url'], 
                                 'size': 20}})
+        for node in node:
+            colors = get_distinct_colors(len(annotators))
+
 
     # create edges from df
     edges = []

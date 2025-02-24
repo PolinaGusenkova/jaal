@@ -143,6 +143,48 @@ filter_edge_form = dbc.FormGroup([
     ),
 ])
 
+nodes_with_no_edges_form = dbc.Form(
+    [
+        html.Hr(className="my-2"),
+        dbc.Row(
+            [
+                dbc.Col(
+                    dbc.FormText(
+                        "Show nodes with no edges",
+                        color="secondary",
+                        style={
+                            "font-size": "1rem",
+                        },
+                    ),
+                    width="auto",
+                ),
+                dbc.Col(
+                    dbc.Checkbox(
+                        id="nodes_with_no_edges_checkbox",
+                        value=False,
+                        className="float-right",
+                        style={
+                            "transform": "scale(1.5)",
+                            "margin-top": "0.25em",
+                            "vertical-align": "middle",
+                        },
+                    ),
+                    width="auto",
+                ),
+            ],
+            align="center",
+        ),
+        html.Hr(className="my-2"),
+    ],
+    style={
+        "margin-top": "10px",
+        "width": "96%",
+        "margin-left": "auto",
+        "margin-right": "auto",
+        "display": "block",
+    },
+)
+
 def get_select_form_layout(id, options, label, description):
     """Creates a select (dropdown) form with provides details
 
